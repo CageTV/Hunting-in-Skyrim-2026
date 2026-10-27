@@ -34,6 +34,7 @@ namespace Menu
 				TextColored(ImVec4(1.0f, 0.45f, 0.4f, 1.0f), "Hunting in Skyrim.esp is not in the load order.");
 				return;
 			}
+			AutoStart::Refresh();
 			const bool started = AutoStart::Started();
 			TextColored(started ? ImVec4(0.65f, 0.9f, 0.5f, 1.0f) : ImVec4(0.95f, 0.8f, 0.4f, 1.0f),
 				started ? "Hunting in Skyrim is running." : "Hunting in Skyrim has not been started in this game.");

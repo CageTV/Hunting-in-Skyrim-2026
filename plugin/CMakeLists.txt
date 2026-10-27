@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 # HuntingInSkyrimNative.dll - the SKSE plugin of Hunting in Skyrim 2026.
 # This is the "older" build (CharmedBaryon's CommonLibSSE-NG: Skyrim VR and SE/AE 1.6.1130 and older); the "new" build is made by E:/WorkSpace/ng-build.
-project(HuntingInSkyrimNative VERSION 0.1.0 LANGUAGES CXX)
+project(HuntingInSkyrimNative VERSION 0.1.2 LANGUAGES CXX)
 
 find_package(CommonLibSSE CONFIG REQUIRED)
 

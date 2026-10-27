@@ -21,10 +21,37 @@ namespace AutoStart
 		float timer = 4.0f;
 		bool  tried = false;
 
+		// Whether the stats quest is running, as Papyrus's Quest.IsRunning() reports it: -1 not asked yet, 0 no, 1 yes. The quest object's own C++
+		// IsRunning() says yes for this quest before it was ever started (seen in game: the menu page claimed it was running), so the question is put to the
+		// VM, which answers a moment later.
+		std::atomic<int> runState{ -1 };
+
+		class RunningFunctor : public RE::BSScript::IStackCallbackFunctor
+		{
+		public:
+			void operator()(RE::BSScript::Variable a_result) override { runState = a_result.IsBool() ? (a_result.GetBool() ? 1 : 0) : -1; }
+			void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override {}
+		};
+
 		RE::TESQuest* StatsQuest()
 		{
 			auto* dh = RE::TESDataHandler::GetSingleton();
 			return dh ? dh->LookupForm<RE::TESQuest>(kStatsQuest, kPlugin) : nullptr;
+		}
+
+		void AskRunning(RE::TESQuest* a_quest)
+		{
+			auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+			if (!vm) {
+				return;
+			}
+			const auto policy = vm->GetObjectHandlePolicy();
+			if (!policy) {
+				return;
+			}
+			const auto handle = policy->GetHandleForObject(static_cast<RE::VMTypeID>(a_quest->GetFormType()), a_quest);
+			RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback(new RunningFunctor);
+			vm->DispatchMethodCall2(handle, "Quest", "IsRunning", RE::MakeFunctionArguments(), callback);
 		}
 
 		// Papyrus Quest.Start(), called the way the start-systems fragment calls it.
@@ -44,18 +71,40 @@ namespace AutoStart
 		}
 
 		// The player is in the world and in control: not in a menu, loading, a cutscene, dialogue, or sitting on the opening cart.
-		bool PlayerFree()
+		// a_why gets the first thing that says no.
+		bool PlayerFree(const char*& a_why)
 		{
 			auto* player = RE::PlayerCharacter::GetSingleton();
 			auto* ui = RE::UI::GetSingleton();
-			if (!player || !player->Is3DLoaded() || !ui || ui->GameIsPaused() || !ui->IsShowingMenus()) {
+			if (!player || !player->Is3DLoaded()) {
+				a_why = "the player is not loaded";
 				return false;
 			}
-			if (ui->IsMenuOpen(RE::MainMenu::MENU_NAME) || ui->IsMenuOpen(RE::LoadingMenu::MENU_NAME) || ui->IsMenuOpen(RE::DialogueMenu::MENU_NAME) ||
-				ui->IsMenuOpen(RE::CursorMenu::MENU_NAME) || SKSEMenuFramework::IsAnyBlockingWindowOpened()) {
+			if (!ui || ui->GameIsPaused()) {
+				a_why = "the game is paused";
 				return false;
 			}
-			return player->AsActorState()->GetSitSleepState() == RE::SIT_SLEEP_STATE::kNormal && !player->IsInCombat();
+			if (ui->IsMenuOpen(RE::MainMenu::MENU_NAME) || ui->IsMenuOpen(RE::LoadingMenu::MENU_NAME)) {
+				a_why = "a loading or main menu is open";
+				return false;
+			}
+			if (ui->IsMenuOpen(RE::DialogueMenu::MENU_NAME)) {
+				a_why = "dialogue";
+				return false;
+			}
+			if (SKSEMenuFramework::IsAnyBlockingWindowOpened()) {
+				a_why = "the SKSE Menu Framework window is open";
+				return false;
+			}
+			if (player->AsActorState()->GetSitSleepState() != RE::SIT_SLEEP_STATE::kNormal) {
+				a_why = "the player is sitting or sleeping";
+				return false;
+			}
+			if (player->IsInCombat()) {
+				a_why = "the player is in combat";
+				return false;
+			}
+			return true;
 		}
 	}
 
@@ -65,11 +114,7 @@ namespace AutoStart
 		return dh && dh->LookupModByName(kPlugin);
 	}
 
-	bool Started()
-	{
-		auto* quest = StatsQuest();
-		return quest && quest->IsRunning();
-	}
+	bool Started() { return runState == 1; }
 
 	bool StartNow()
 	{
@@ -77,14 +122,25 @@ namespace AutoStart
 		if (!quest) {
 			return false;
 		}
-		if (quest->IsRunning()) {
-			return true;
-		}
 		SKSE::GetTaskInterface()->AddTask([quest]() {
-			CallStart(quest);
+			CallStart(quest);  // a no-op when the quest is already running
+			AskRunning(quest);
 			SKSE::log::info("Started the Hunting in Skyrim stats quest ({:08X})", quest->GetFormID());
 		});
 		return true;
+	}
+
+	void Refresh()
+	{
+		static auto last = std::chrono::steady_clock::now() - std::chrono::seconds(10);
+		const auto  now = std::chrono::steady_clock::now();
+		if (now - last < std::chrono::seconds(5)) {
+			return;
+		}
+		last = now;
+		if (auto* quest = StatsQuest()) {
+			SKSE::GetTaskInterface()->AddTask([quest]() { AskRunning(quest); });
+		}
 	}
 
 	void OnGameLoaded()
@@ -92,6 +148,7 @@ namespace AutoStart
 		hold = 12.0f;
 		timer = 4.0f;
 		tried = false;
+		runState = -1;
 	}
 
 	void Tick(float a_dt)
@@ -102,14 +159,39 @@ namespace AutoStart
 			return;
 		}
 		timer = 2.0f;
-		if (!Settings::Get().autoStart || !Installed()) {
+		static float lastLog = -100.0f;
+		static float clock = 0.0f;
+		clock += 2.0f;
+		auto say = [&](const char* a_why) {
+			if (clock - lastLog >= 20.0f) {
+				lastLog = clock;
+				SKSE::log::info("Auto start is waiting: {}", a_why);
+			}
+		};
+		if (!Settings::Get().autoStart) {
+			return;
+		}
+		if (!Installed()) {
+			say("Hunting in Skyrim.esp is not in the load order");
+			return;
+		}
+		if (!StatsQuest()) {
+			say("the stats quest (0356BD) was not found in Hunting in Skyrim.esp");
+			return;
+		}
+		if (auto* quest = StatsQuest(); quest && runState == -1) {
+			SKSE::GetTaskInterface()->AddTask([quest]() { AskRunning(quest); });
+			say("asking the game whether the stats quest is running");
 			return;
 		}
 		if (Started()) {
+			SKSE::log::info("Auto start: Hunting in Skyrim is already running, nothing to do");
 			tried = true;  // already running (an old save, or started by hand): nothing to do
 			return;
 		}
-		if (!PlayerFree()) {
+		const char* why = "";
+		if (!PlayerFree(why)) {
+			say(why);
 			return;
 		}
 		SKSE::log::info("Auto start: Hunting in Skyrim has not been started in this game, starting it");

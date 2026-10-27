@@ -46,7 +46,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
 	SKSE::Init(a_skse);
 	SetupLog();
-	SKSE::log::info("HuntingInSkyrimNative.dll 0.1.0, game {}", REL::Module::get().version().string());
+	SKSE::log::info("HuntingInSkyrimNative.dll 0.1.2, game {}", REL::Module::get().version().string());
 	SKSE::GetMessagingInterface()->RegisterListener(OnMessage);
 	return true;
 }

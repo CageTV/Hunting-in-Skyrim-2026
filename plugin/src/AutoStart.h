@@ -11,7 +11,8 @@
 namespace AutoStart
 {
 	bool Installed();     // Hunting in Skyrim.esp is in the load order
-	bool Started();       // the stats quest is running
+	bool Started();       // the stats quest is running, as Papyrus reports it (refreshed by Refresh)
+	void Refresh();       // ask the game again, at most every 5 seconds (call while a page that shows the state is open)
 	bool StartNow();      // start it (the same Quest.Start call the spell's fragment makes); false when it cannot be done now
 	void OnGameLoaded();  // a save was loaded or a new game started: wait a little before anything runs
 	void Tick(float a_dt);  // every frame
