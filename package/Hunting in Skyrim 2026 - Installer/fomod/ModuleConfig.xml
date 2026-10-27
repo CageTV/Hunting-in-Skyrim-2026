@@ -1,0 +1,31 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+  <moduleName>Hunting in Skyrim 2026</moduleName>
+  <requiredInstallFiles>
+    <file source="README.txt" destination="Hunting in Skyrim 2026 README.txt"/>
+    <file source="LICENSE.txt" destination="Hunting in Skyrim 2026 LICENSE.txt"/>
+  </requiredInstallFiles>
+  <installSteps order="Explicit">
+    <installStep name="Game version">
+      <optionalFileGroups order="Explicit">
+        <group name="HuntingInSkyrimNative.dll" type="SelectExactlyOne">
+          <plugins order="Explicit">
+            <plugin name="New (Skyrim 1.6.1170 and newer)">
+              <description>The new build. Works on Skyrim SE/AE 1.6.1170 and on every later version, including 1.7.x. Pre-selected when the installer sees 1.6.1170 or newer.</description>
+              <files><folder source="new" destination=""/></files>
+              <typeDescriptor><dependencyType><defaultType name="Optional"/><patterns>
+                <pattern><dependencies><gameDependency version="1.6.1170.0"/></dependencies><type name="Recommended"/></pattern>
+              </patterns></dependencyType></typeDescriptor>
+            </plugin>
+            <plugin name="Older (Skyrim VR and 1.6.1130 and older)">
+              <description>The older build, for Skyrim VR and SE/AE 1.6.1130 and older. On 1.6.1170 either build works.</description>
+              <files><folder source="older" destination=""/></files>
+              <typeDescriptor><dependencyType><defaultType name="Optional"/><patterns>
+                <pattern><dependencies><gameDependency version="1.6.1170.0"/></dependencies><type name="Optional"/></pattern>
+              </patterns></dependencyType></typeDescriptor>
+            </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+  </installSteps>
+</config>
