@@ -55,6 +55,15 @@ namespace Menu
 				SameLine();
 				TextDisabled("Takes effect when you close this menu.");
 			}
+			auto* dh = RE::TESDataHandler::GetSingleton();
+			if (dh && dh->LookupModByName("Hunterborn.esp")) {
+				Spacing();
+				SeparatorText("Hunterborn");
+				TextColored(ImVec4(0.65f, 0.9f, 0.5f, 1.0f), "Hunterborn is installed.");
+				TextWrapped("Hunterborn does the skinning. With its Hunting in Skyrim compatibility on (Hunterborn > Compatibility), every animal it skins also earns "
+							"Hunting in Skyrim skinning experience and the double-skin perk, and the carcass shows Hunting in Skyrim's skinned model. Hunting in Skyrim's own "
+							"realistic skinning is switched off for you so the two do not both act on the same animal.");
+			}
 			Spacing();
 			TextDisabled("Hunting in Skyrim by Richard Webster. Settings pages by CageTV.");
 		}
