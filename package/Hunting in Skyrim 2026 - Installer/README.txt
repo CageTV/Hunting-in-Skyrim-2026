@@ -5,7 +5,7 @@ Last Seed 2026, Hunterborn 2026, Simple Hunting Overhaul 2026, Immersive Death C
 THIS IS A START, NOT THE WHOLE UPDATE. Hunting in Skyrim itself stays installed and is a requirement: this adds a small SKSE plugin that does what the mod
 makes you do by hand. More of the update will follow in later versions.
 
-WHAT IT DOES (1.0.0)
+WHAT IT DOES (1.1.0)
 --------------------
 Hunting in Skyrim begins when you cast the spell Path of the Woodsman and answer "Start systems". Only then do the skills, trapping, tracking and the stat journal
 exist, and you get three message boxes. This plugin starts it for you:
@@ -15,6 +15,11 @@ exist, and you get three message boxes. This plugin starts it for you:
 - A game where Hunting in Skyrim is already running is left alone. If you would rather start it yourself, turn the automatic start off in the settings.
 - A "Hunting in Skyrim" page in SKSE Menu Framework shows whether it is running, has the automatic start switch, and a "Start it now" button.
 - When Hunterborn 2026 is installed, the page says what the connection between them does (skinning experience, the double-skin perk, the skinned animal models).
+
+- Two switches on the page keep Hunting in Skyrim from doing what other mods already do (both on by default, effective at the next load and checked while you play):
+    Switch off Hunting in Skyrim's fishing   its fishing quest is stopped, so Fishing 2026 (or any other fishing mod) is the only fishing in the game.
+    Switch off its own skinning              the realistic skinning of a corpse (with its own time, fade and animation) is held off so Hunterborn or Simple
+                                             Hunting Overhaul are the only things skinning. Its skills, perks, armors, dens, quests and the guild are untouched.
 
 TRAPS
 -----
