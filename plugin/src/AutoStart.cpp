@@ -20,6 +20,27 @@ namespace AutoStart
 		float hold = 12.0f;  // seconds to wait after a load
 		float timer = 4.0f;
 		bool  tried = false;
+		bool  fishingDone = false;
+		float skinClock = 0.0f;
+		constexpr unsigned kRealisticSkinning = 0x0FD2C1;  // HISRealisticSkinningEnabled
+		constexpr unsigned kSkinningAnimation = 0x100E36;  // HISSkinningAnimationEnabled
+
+		// Keeps Hunting in Skyrim's own skinning (the realistic skinning on a corpse, with its time, fade and animation) switched off. Its scripts set the
+		// global back when a menu option is changed, so this looks again every few seconds.
+		void KeepSkinningOff()
+		{
+			auto* dh = RE::TESDataHandler::GetSingleton();
+			if (!dh) {
+				return;
+			}
+			for (const unsigned id : { kRealisticSkinning, kSkinningAnimation }) {
+				if (auto* g = dh->LookupForm<RE::TESGlobal>(id, "Hunting in Skyrim.esp"); g && g->value != 0.0f) {
+					g->value = 0.0f;
+					SKSE::log::info("Hunting in Skyrim's own skinning switched off ({:06X})", id);
+				}
+			}
+		}
+		constexpr unsigned kFishingQuest = 0x45D27A;  // HISFishingQuest: its own rods, floats and catches
 
 		// Whether the stats quest is running, as Papyrus's Quest.IsRunning() reports it: -1 not asked yet, 0 no, 1 yes. The quest object's own C++
 		// IsRunning() says yes for this quest before it was ever started (seen in game: the menu page claimed it was running), so the question is put to the
@@ -68,6 +89,28 @@ namespace AutoStart
 			const auto handle = policy->GetHandleForObject(static_cast<RE::VMTypeID>(a_quest->GetFormType()), a_quest);
 			RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> none;
 			vm->DispatchMethodCall2(handle, "Quest", "Start", RE::MakeFunctionArguments(), none);
+		}
+
+		// Stops HISFishingQuest (Quest.Stop; its fragment shuts the fishing scripts down). Fishing 2026 is the one fishing system; a quest that is not
+		// running ignores the call.
+		void StopFishing()
+		{
+			auto* dh = RE::TESDataHandler::GetSingleton();
+			auto* quest = dh ? dh->LookupForm<RE::TESQuest>(kFishingQuest, kPlugin) : nullptr;
+			if (!quest) {
+				return;
+			}
+			SKSE::GetTaskInterface()->AddTask([quest]() {
+				auto*      vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+				const auto policy = vm ? vm->GetObjectHandlePolicy() : nullptr;
+				if (!policy) {
+					return;
+				}
+				const auto handle = policy->GetHandleForObject(static_cast<RE::VMTypeID>(quest->GetFormType()), quest);
+				RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> none;
+				vm->DispatchMethodCall2(handle, "Quest", "Stop", RE::MakeFunctionArguments(), none);
+				SKSE::log::info("Stopped Hunting in Skyrim's fishing quest (Fishing 2026 does the fishing)");
+			});
 		}
 
 		// The player is in the world and in control: not in a menu, loading, a cutscene, dialogue, or sitting on the opening cart.
@@ -145,6 +188,7 @@ namespace AutoStart
 
 	void OnGameLoaded()
 	{
+		fishingDone = false;
 		hold = 12.0f;
 		timer = 4.0f;
 		tried = false;
@@ -155,6 +199,15 @@ namespace AutoStart
 	{
 		hold -= a_dt;
 		timer -= a_dt;
+		if (hold <= 0.0f && !fishingDone && Settings::Get().fishingOff && Installed()) {
+			fishingDone = true;
+			StopFishing();
+		}
+		skinClock += a_dt;
+		if (hold <= 0.0f && skinClock >= 5.0f && Settings::Get().skinningOff && Installed()) {
+			skinClock = 0.0f;
+			KeepSkinningOff();
+		}
 		if (hold > 0.0f || timer > 0.0f || tried) {
 			return;
 		}

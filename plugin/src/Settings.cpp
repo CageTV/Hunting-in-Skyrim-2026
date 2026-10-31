@@ -47,6 +47,10 @@ namespace Settings
 			const std::string val = Trim(line.substr(eq + 1));
 			if (key == "auto_start") {
 				values.autoStart = val == "1" || val == "true";
+			} else if (key == "fishing_off") {
+				values.fishingOff = val == "1" || val == "true";
+			} else if (key == "skinning_off") {
+				values.skinningOff = val == "1" || val == "true";
 			}
 		}
 	}
@@ -61,7 +65,9 @@ namespace Settings
 			return;
 		}
 		out << "; Hunting in Skyrim 2026. Written by the in-game page; safe to edit by hand while the game is closed.\n"
-			<< "auto_start=" << (values.autoStart ? 1 : 0) << "\n";
+			<< "auto_start=" << (values.autoStart ? 1 : 0) << "\n"
+			<< "fishing_off=" << (values.fishingOff ? 1 : 0) << "\n"
+			<< "skinning_off=" << (values.skinningOff ? 1 : 0) << "\n";
 	}
 
 	void MarkDirty() { timer = 0.6f; }

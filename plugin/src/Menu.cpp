@@ -48,6 +48,16 @@ namespace Menu
 			}
 			Tip("Once the opening is over and you are in control, the systems start by themselves: skills, trapping, tracking, the stat journal. No spell to cast, "
 				"no message boxes. A game that has already started it is left alone.");
+			if (Checkbox("Switch off Hunting in Skyrim's fishing", &s.fishingOff)) {
+				Settings::MarkDirty();
+			}
+			Tip("Hunting in Skyrim has a fishing system of its own (rods, floats, catches). With this on its fishing quest is stopped on every load so Fishing 2026 "
+				"is the only fishing in the game. Takes effect at the next load.");
+			if (Checkbox("Switch off Hunting in Skyrim's own skinning", &s.skinningOff)) {
+				Settings::MarkDirty();
+			}
+			Tip("Hunting in Skyrim's realistic skinning (skinning a corpse by activating it, with its own time, fade and animation) is held off so that Hunterborn and "
+				"Simple Hunting Overhaul are the only things skinning. Its skills, perks, armors, dens, quests and the guild are untouched. Checked every few seconds.");
 			if (!started) {
 				if (Button("Start it now")) {
 					AutoStart::StartNow();
